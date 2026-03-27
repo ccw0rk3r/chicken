@@ -105,22 +105,13 @@ async def cmd_start(message: Message):
     except Exception:
         pass
 
-    if user_id in users:
-        # Repeat visit
-        await bot.send_message(
-            chat_id=message.chat.id,
-            text="Здарова снова, братан\\! Жми *ИГРАТЬ* 👇",
-            parse_mode="MarkdownV2",
-            reply_markup=get_main_keyboard()
-        )
-        return
-
-    # New user — save
-    users[user_id] = {
-        "first_seen": datetime.now().isoformat(),
-        "username": message.from_user.username or ""
-    }
-    save_users(users)
+    # Save user if new
+    if user_id not in users:
+        users[user_id] = {
+            "first_seen": datetime.now().isoformat(),
+            "username": message.from_user.username or ""
+        }
+        save_users(users)
 
     # Send welcome with video
     video_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "start.mp4")
