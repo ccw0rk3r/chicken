@@ -99,11 +99,6 @@ async def cmd_start(message: Message):
     user_id = str(message.from_user.id)
     users = load_users()
 
-    # Try to delete the /start message
-    try:
-        await message.delete()
-    except Exception:
-        pass
 
     # Save user if new
     if user_id not in users:
