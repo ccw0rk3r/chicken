@@ -1,10 +1,10 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import (
     Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton,
-    WebAppInfo, FSInputFile, InputMediaPhoto, InputMediaVideo
+    WebAppInfo, FSInputFile
 )
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -53,42 +53,39 @@ def get_admin_keyboard() -> InlineKeyboardMarkup:
     ])
 
 WELCOME_TEXT = (
-    "*Здарова, братан! Это Лёха 🐔*\n"
-    "*Смотри видео сверху за 30 секунд* — там всё показано: как зарегаться, пополнить и найти Курицу\\.\n\n"
-    "*Как начать кормиться с Курицы:*\n"
-    "1\\. Смотри видео \\(там всё по шагам\\)\n"
-    "2\\. Жми кнопку «ИГРАТЬ В КУРИЦУ» ниже\n"
-    "3\\. Пополняй от 1000р \\(лучше с 2000, чтоб нормально поиграть\\)\n"
-    "4\\. Забирай иксы и сразу выводи на карту, не жадничай\\!\n\n"
-    "*Если что\\-то не получается — пиши сразу мне: @alexdavc*"
+    "<b>Здарова, братан! Это Лёха 🐔</b>\n"
+    "<b>Смотри видео сверху за 30 секунд</b> — там всё показано: как зарегаться, пополнить и найти Курицу.\n\n"
+    "<b>Как начать кормиться с Курицы:</b>\n"
+    "1. Смотри видео (там всё по шагам)\n"
+    "2. Жми кнопку «ИГРАТЬ В КУРИЦУ» ниже\n"
+    "3. Пополняй от 1000р (лучше с 2000, чтоб нормально поиграть)\n"
+    "4. Забирай иксы и сразу выводи на карту, не жадничай!\n\n"
+    "<b>Если что-то не получается — пиши сразу мне: @alexdavc</b>"
 )
 
 REMINDER_TEXT = (
-    "*Брат, важно, послушай\\!*\n\n"
-    "Иногда происходит выход из вашего аккаунт, *ради вашей безопасности*\\.\n"
-    "Если у тебя *уже был аккаунт*, но тебя выкинуло или просит регистрацию заново — \n"
-    "*НЕ создавай новый аккаунт\\!*\n"
-    "Просто пролистай чуть ниже — там будет кнопка *\"Войти\"*\\. Жми её\\.\n\n"
-    "Так все твои бабки и выигрыши останутся на месте\\.\n"
-    "Сделал новый по ошибке — сразу пиши мне @alexdavc, разберём и починим\\."
+    "<b>Брат, важно, послушай!</b>\n\n"
+    "Иногда происходит выход из вашего аккаунт, <b>ради вашей безопасности</b>.\n"
+    "Если у тебя <b>уже был аккаунт</b>, но тебя выкинуло или просит регистрацию заново — \n"
+    "<b>НЕ создавай новый аккаунт!</b>\n"
+    "Просто пролистай чуть ниже — там будет кнопка <b>\"Войти\"</b>. Жми её.\n\n"
+    "Так все твои бабки и выигрыши останутся на месте.\n"
+    "Сделал новый по ошибке — сразу пиши мне @alexdavc, разберём и починим."
 )
 
-# FSM states for broadcast
 class BroadcastStates(StatesGroup):
     waiting_text = State()
     waiting_media = State()
     waiting_buttons = State()
     confirm = State()
 
-broadcast_data = {}
-
 async def send_reminder(chat_id: int):
-    await asyncio.sleep(1800)  # 30 minutes
+    await asyncio.sleep(1800)
     try:
         await bot.send_message(
             chat_id=chat_id,
             text=REMINDER_TEXT,
-            parse_mode="MarkdownV2",
+            parse_mode="HTML",
             reply_markup=get_main_keyboard()
         )
     except Exception as e:
@@ -99,16 +96,14 @@ async def cmd_start(message: Message):
     user_id = str(message.from_user.id)
     users = load_users()
 
-
-    # Save user if new
     if user_id not in users:
         users[user_id] = {
             "first_seen": datetime.now().isoformat(),
             "username": message.from_user.username or ""
         }
         save_users(users)
+        asyncio.create_task(send_reminder(message.chat.id))
 
-    # Send welcome with video
     video_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "start.mp4")
     try:
         video = FSInputFile(video_path)
@@ -116,19 +111,16 @@ async def cmd_start(message: Message):
             chat_id=message.chat.id,
             video=video,
             caption=WELCOME_TEXT,
-            parse_mode="MarkdownV2",
+            parse_mode="HTML",
             reply_markup=get_main_keyboard()
         )
     except FileNotFoundError:
         await bot.send_message(
             chat_id=message.chat.id,
             text=WELCOME_TEXT,
-            parse_mode="MarkdownV2",
+            parse_mode="HTML",
             reply_markup=get_main_keyboard()
         )
-
-    # Schedule reminder in 30 minutes
-    asyncio.create_task(send_reminder(message.chat.id))
 
 @dp.message(Command("admin"))
 async def cmd_admin(message: Message):
@@ -136,8 +128,8 @@ async def cmd_admin(message: Message):
         return
     users = load_users()
     await message.answer(
-        f"👑 *Админ\\-панель*\n\n👥 Всего пользователей: *{len(users)}*",
-        parse_mode="MarkdownV2",
+        f"👑 <b>Админ-панель</b>\n\n👥 Всего пользователей: <b>{len(users)}</b>",
+        parse_mode="HTML",
         reply_markup=get_admin_keyboard()
     )
 
@@ -147,8 +139,8 @@ async def admin_count(callback: CallbackQuery):
         return
     users = load_users()
     await callback.message.edit_text(
-        f"👑 *Админ\\-панель*\n\n👥 Всего пользователей: *{len(users)}*",
-        parse_mode="MarkdownV2",
+        f"👑 <b>Админ-панель</b>\n\n👥 Всего пользователей: <b>{len(users)}</b>",
+        parse_mode="HTML",
         reply_markup=get_admin_keyboard()
     )
     await callback.answer()
@@ -173,9 +165,8 @@ async def admin_broadcast_start(callback: CallbackQuery, state: FSMContext):
     if callback.from_user.id != ADMIN_ID:
         return
     await callback.message.answer(
-        "📢 *Рассылка*\n\nОтправь текст сообщения для рассылки\\.\n"
-        "Поддерживается MarkdownV2\\.",
-        parse_mode="MarkdownV2"
+        "📢 <b>Рассылка</b>\n\nОтправь текст сообщения для рассылки.\nПоддерживается HTML.",
+        parse_mode="HTML"
     )
     await state.set_state(BroadcastStates.waiting_text)
     await callback.answer()
@@ -185,10 +176,7 @@ async def broadcast_get_text(message: Message, state: FSMContext):
     if message.from_user.id != ADMIN_ID:
         return
     await state.update_data(text=message.text or message.caption or "")
-    await message.answer(
-        "📎 Прикрепи фото или видео \\(или напиши /skip\\)",
-        parse_mode="MarkdownV2"
-    )
+    await message.answer("📎 Прикрепи фото или видео (или напиши /skip)")
     await state.set_state(BroadcastStates.waiting_media)
 
 @dp.message(BroadcastStates.waiting_media, Command("skip"))
@@ -197,10 +185,8 @@ async def broadcast_skip_media(message: Message, state: FSMContext):
         return
     await state.update_data(media=None, media_type=None)
     await message.answer(
-        "🔘 Добавить кнопки\\? Отправь в формате:\n"
-        "`Текст кнопки|https://url.com`\n"
-        "Каждая кнопка с новой строки\\. Или /skip",
-        parse_mode="MarkdownV2"
+        "🔘 Добавить кнопки? Отправь в формате:\n<code>Текст кнопки|https://url.com</code>\nКаждая кнопка с новой строки. Или /skip",
+        parse_mode="HTML"
     )
     await state.set_state(BroadcastStates.waiting_buttons)
 
@@ -210,10 +196,8 @@ async def broadcast_get_photo(message: Message, state: FSMContext):
         return
     await state.update_data(media=message.photo[-1].file_id, media_type="photo")
     await message.answer(
-        "🔘 Добавить кнопки\\? Отправь в формате:\n"
-        "`Текст кнопки|https://url.com`\n"
-        "Каждая кнопка с новой строки\\. Или /skip",
-        parse_mode="MarkdownV2"
+        "🔘 Добавить кнопки? Отправь в формате:\n<code>Текст кнопки|https://url.com</code>\nКаждая кнопка с новой строки. Или /skip",
+        parse_mode="HTML"
     )
     await state.set_state(BroadcastStates.waiting_buttons)
 
@@ -223,10 +207,8 @@ async def broadcast_get_video(message: Message, state: FSMContext):
         return
     await state.update_data(media=message.video.file_id, media_type="video")
     await message.answer(
-        "🔘 Добавить кнопки\\? Отправь в формате:\n"
-        "`Текст кнопки|https://url.com`\n"
-        "Каждая кнопка с новой строки\\. Или /skip",
-        parse_mode="MarkdownV2"
+        "🔘 Добавить кнопки? Отправь в формате:\n<code>Текст кнопки|https://url.com</code>\nКаждая кнопка с новой строки. Или /skip",
+        parse_mode="HTML"
     )
     await state.set_state(BroadcastStates.waiting_buttons)
 
@@ -263,7 +245,7 @@ async def _broadcast_confirm(message: Message, state: FSMContext):
     )
     await state.set_state(BroadcastStates.confirm)
 
-def parse_buttons(buttons_text: str) -> InlineKeyboardMarkup | None:
+def parse_buttons(buttons_text: str):
     if not buttons_text:
         return None
     rows = []
@@ -286,8 +268,7 @@ async def do_broadcast(callback: CallbackQuery, state: FSMContext):
     text = data.get("text", "")
     media = data.get("media")
     media_type = data.get("media_type")
-    buttons_raw = data.get("buttons")
-    kb = parse_buttons(buttons_raw) if buttons_raw else None
+    kb = parse_buttons(data.get("buttons"))
 
     sent = 0
     failed = 0
